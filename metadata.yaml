@@ -1,0 +1,6 @@
+name: astrbot_plugin_group_history
+desc: 《群史》编纂委员会 —— 用维基百科的严肃文体，自动把群里的名场面编成正史。每日自动编纂、词条修订史、人物档案、快记申报、HTML 成书出版。
+help: 发送 /群史帮助 查看完整用法。
+version: v1.0.0
+author: yuehua
+repo: https://github.com/YueHua46/astrbot_plugin_group_history

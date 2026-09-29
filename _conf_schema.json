@@ -1,0 +1,113 @@
+{
+  "provider_id": {
+    "description": "执笔模型（Provider）。留空则使用 AstrBot 默认模型。",
+    "hint": "从下拉框选择；若列表里没有新配置的模型，可先在面板确认该 Provider 已启用，或用 /群史模型 指令热切换。",
+    "type": "string",
+    "default": "anthropic/gemini-3.8-flash-high",
+    "options": [
+      "anthropic/gemini-3.8-flash-high",
+      "anthropic/gemini-3.8-flash-medium",
+      "anthropic/gemini-3.8-flash-low",
+      "zhipu/glm-4.7-flash",
+      "matchfit.top/deepseek-v4-flash",
+      "tokenshop_grok/grok-4.6",
+      "longcat/LongCat-2.0",
+      "deepseek-responses/deepseek-flash",
+      ""
+    ],
+    "obvious_hint": true
+  },
+  "run_hour": {
+    "description": "每日编纂时刻（几点）",
+    "hint": "24 小时制。委员会会在该小时随机一个分钟数开工，审阅前一天的实录。",
+    "type": "int",
+    "default": 2
+  },
+  "run_interval_days": {
+    "description": "编纂周期（每 N 天一次）",
+    "hint": "1 = 每天编一次；3 = 每三天编一次（一次审阅间隔内全部实录）。调大可降低刷屏与开销。",
+    "type": "int",
+    "default": 1
+  },
+  "max_announces_per_day": {
+    "description": "每次编纂的官宣条数上限",
+    "hint": "词条照常全部入库，但群里每次最多官宣这么多条（按史评等级从高到低）。0 = 只入库、完全不在群里播报。",
+    "type": "int",
+    "default": 2
+  },
+  "announce_enabled": {
+    "description": "有新词条时在群里官宣",
+    "hint": "关闭后词条仍然照常入库，只是不在群里播报。",
+    "type": "bool",
+    "default": true
+  },
+  "announce_empty_day": {
+    "description": "无事的日子也播报「本日无大事」",
+    "hint": "播报冷清日的歇笔公告。默认关闭，防止刷屏。",
+    "type": "bool",
+    "default": false
+  },
+  "max_entries_per_day": {
+    "description": "每日入史词条上限",
+    "hint": "防止词条通货膨胀。没有大事的日子会自然空缺。",
+    "type": "int",
+    "default": 2
+  },
+  "significance_threshold": {
+    "description": "入史史评门槛（1-10）",
+    "hint": "侦察员给出的 significance 达到该值才允许立卷。调高则只记大事，调低则流水账也会入史。",
+    "type": "int",
+    "default": 6
+  },
+  "backfill_days": {
+    "description": "首次启动时回溯编纂天数",
+    "hint": "装好插件后的第一夜，会静默回溯最近 N 天的实录并直接入库（不在群里刷屏）。0 = 不回溯。",
+    "type": "int",
+    "default": 14
+  },
+  "probation_days": {
+    "description": "试运行期（天）",
+    "hint": "试运行期内的官宣会带【草稿】标记，随时可 /删史。0 = 关闭试运行标记。",
+    "type": "int",
+    "default": 14
+  },
+  "allowed_groups": {
+    "description": "只编纂这些群（群号列表）",
+    "hint": "留空 = 编纂所有有消息的群。填群号可缩小范围。",
+    "type": "list",
+    "default": []
+  },
+  "fast_track_enabled": {
+    "description": "允许群友 /快记 申报事件",
+    "type": "bool",
+    "default": true
+  },
+  "fast_track_cooldown_minutes": {
+    "description": "/快记 冷却（分钟/人）",
+    "type": "int",
+    "default": 10
+  },
+  "fast_track_hours_lookback": {
+    "description": "/快记 调阅最近几小时实录",
+    "type": "int",
+    "default": 8
+  },
+  "max_context_chars": {
+    "description": "单日实录送审的最大字符数",
+    "hint": "超出会均匀抽稀。大群可适当调高（消耗更多 token）。",
+    "type": "int",
+    "default": 120000
+  },
+  "chunk_chars": {
+    "description": "实录分片大小（字符）",
+    "hint": "实录超过该长度会分片多次侦察后合并。",
+    "type": "int",
+    "default": 45000
+  },
+  "style_prompt": {
+    "description": "文体补充要求（追加在默认维基文体之后）",
+    "hint": "想换口味可写在这里，例如「更冷面笑匠一些」「多用食物比喻」。留空使用默认文体。",
+    "type": "string",
+    "default": ""
+  }
+}
