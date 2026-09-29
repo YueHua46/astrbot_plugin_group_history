@@ -35,6 +35,10 @@ def _now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
+def _ts_str(ts: int) -> str:
+    return datetime.fromtimestamp(ts).strftime("%m-%d %H:%M")
+
+
 class GroupHistoryCommittee(Star):
     """《群史》编纂委员会。"""
 
@@ -59,6 +63,7 @@ class GroupHistoryCommittee(Star):
         if not self.db.get_meta("install_date"):
             self.db.set_meta("install_date", datetime.now().strftime("%Y-%m-%d"))
         self._tasks.append(asyncio.create_task(self._startup()))
+        self._tasks.append(asyncio.create_task(self._announce_queue_loop()))
         self._tasks.append(asyncio.create_task(self._trigger_watcher()))
         logger.info(f"[群史 v{PLUGIN_VERSION}] 编纂委员会已挂牌开工")
 
@@ -301,7 +306,7 @@ class GroupHistoryCommittee(Star):
             if announce and announce_cap > 0:
                 for er in entry_results:
                     if er.get("announce_text"):
-                        await self._send(umo, er["announce_text"])
+                        await self._dispatch(umo, er["announce_text"], reason)
             if (
                 not entry_results
                 and announce
@@ -309,7 +314,7 @@ class GroupHistoryCommittee(Star):
                 and reason == "daily"
                 and not focus_hint
             ):
-                await self._send(umo, prompts.NO_EVENT_ANNOUNCE)
+                await self._dispatch(umo, prompts.NO_EVENT_ANNOUNCE, reason)
         return results
 
     async def _compile_one(
@@ -425,11 +430,44 @@ class GroupHistoryCommittee(Star):
             return prompts.DRAFT_NOTE
         return ""
 
-    async def _send(self, umo: str, text: str):
+    async def _send(self, umo: str, text: str) -> bool:
         try:
-            await self.context.send_message(umo, MessageChain(chain=[Plain(text)]))
+            ok = await self.context.send_message(umo, MessageChain(chain=[Plain(text)]))
+            return bool(ok)
         except Exception as e:
             logger.error(f"[群史] 主动播报失败（{umo}）：{e}")
+            return False
+
+    async def _dispatch(self, umo: str, text: str, reason: str):
+        """官宣发送：每日编纂走定时队列（避免深夜打扰），其余立即发送。"""
+        announce_hour = int(self._cfg("announce_hour", 12))
+        if reason == "daily" and announce_hour >= 0:
+            due = F.next_announce_due_ts(int(time.time()), announce_hour)
+            self.db.queue_announce(umo, text, due)
+            logger.info(f"[群史] 官宣已排入队列，将于 {_ts_str(due)} 发出")
+        else:
+            await self._send(umo, text)
+
+    async def _announce_queue_loop(self):
+        """每分钟检查官宣队列，到点即发；失败重试至多 3 次。"""
+        while True:
+            try:
+                await asyncio.sleep(60)
+                now_ts = int(time.time())
+                for item in self.db.due_announcements(now_ts):
+                    ok = await self._send(item["umo"], item["text"])
+                    if ok:
+                        self.db.mark_announce_sent(item["id"])
+                        logger.info(f"[群史] 定时官宣已发出（队列 {item['id']}，群 {item['umo'].split(':')[-1]}）")
+                    else:
+                        self.db.bump_announce_attempt(item["id"])
+                        if item["attempts"] + 1 >= 3:
+                            logger.error(f"[群史] 官宣三次未送达，放弃（队列 {item['id']}）")
+                            self.db.mark_announce_sent(item["id"])
+            except asyncio.CancelledError:
+                return
+            except Exception as e:
+                logger.error(f"[群史] 官宣队列异常：{e}")
 
     # ================= 工具 =================
 
@@ -898,6 +936,7 @@ class GroupHistoryCommittee(Star):
             f"{report['stats']['revisions']} 次 / 引文 {report['stats']['evidence']} 条",
             f"· 执笔 Provider：{report['provider']} {llm_state}",
             f"· 每日编纂：{report['run_hour']} 点 | 上次成功：{report['last_run_ok'] or '尚未运行'}",
+            f"· 官宣时刻：{report['announce_hour']} 点（待发 {report['queue']} 条）",
             f"· 试运行期：{'进行中（' + report['probation_left'] + '）' if report['probation_left'] else '已结束'}",
         ]
         yield event.plain_result("\n".join(lines))
@@ -918,6 +957,8 @@ class GroupHistoryCommittee(Star):
             "chat_providers": [p for p, _ in self.list_chat_providers()],
             "stats": self.db.stats(),
             "run_hour": self._cfg("run_hour", 2),
+            "announce_hour": self._cfg("announce_hour", 12),
+            "queue": self.db.queue_size(),
             "last_run_ok": self.db.get_meta("last_run_ok") or "",
             "last_run_date": self.db.get_meta("last_run_date") or "",
             "probation_left": probation,

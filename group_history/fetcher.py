@@ -425,3 +425,14 @@ async def onebot_group_list(bot) -> list[dict]:
         for g in data
         if isinstance(g, dict) and g.get("group_id")
     ]
+
+
+def next_announce_due_ts(now_ts: int, announce_hour: int) -> int:
+    """计算下一次官宣时刻：announce_hour 点的下一个出现（编纂在夜里跑，官宣在白天发）。"""
+    from datetime import datetime as _dt
+
+    now = _dt.fromtimestamp(now_ts)
+    due = now.replace(hour=announce_hour, minute=0, second=0, microsecond=0)
+    if due <= now:
+        due += timedelta(days=1)
+    return int(due.timestamp())

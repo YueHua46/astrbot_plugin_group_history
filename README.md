@@ -58,7 +58,8 @@ AstrBot 插件：一个常驻群里的「编纂委员会」。它每晚通读前
 | 配置 | 默认 | 说明 |
 |---|---|---|
 | `provider_id` | gemini-3.8-flash-high | 执笔模型，下拉选择；留空用默认模型 |
-| `run_hour` | 2 | 每日编纂时刻 |
+| `run_hour` | 2 | 编纂时刻（夜间静默干活） |
+| `announce_hour` | 12 | 官宣时刻：词条到点才发群里，避免深夜打扰；-1 = 编完立即发 |
 | `run_interval_days` | 1 | 编纂周期：每 N 天跑一次，调大降低刷屏 |
 | `max_announces_per_day` | 2 | 每次编纂的官宣条数上限，0 = 只入库不播报 |
 | `max_entries_per_day` | 2 | 每日入史上限（防通货膨胀） |

@@ -76,6 +76,15 @@ CREATE TABLE IF NOT EXISTS raw_messages(
 CREATE UNIQUE INDEX IF NOT EXISTS idx_raw_dedupe
     ON raw_messages(umo, ts, sender_id, substr(text,1,64));
 CREATE INDEX IF NOT EXISTS idx_raw_group_ts ON raw_messages(group_id, ts);
+CREATE TABLE IF NOT EXISTS announce_queue(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    umo TEXT NOT NULL,
+    text TEXT NOT NULL,
+    due_ts INTEGER NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_queue_due ON announce_queue(due_ts);
 """
 
 _WORD_RE = re.compile(r"[\w\u4e00-\u9fff]+")
@@ -535,6 +544,36 @@ class HistoryDB:
         if row:
             return {"sender_id": row["sender_id"], "sender_name": row["sender_name"]}
         return None
+
+    # ---------- 官宣队列（夜间编纂，白天发报） ----------
+
+    def queue_announce(self, umo: str, text: str, due_ts: int):
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT INTO announce_queue(umo,text,due_ts,attempts,created_at) "
+                "VALUES(?,?,?,0,?)",
+                (umo, text, int(due_ts), datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+            )
+
+    def due_announcements(self, now_ts: int, limit: int = 20) -> list[dict]:
+        rows = self._conn.execute(
+            "SELECT * FROM announce_queue WHERE due_ts<=? AND attempts<3 ORDER BY id LIMIT ?",
+            (int(now_ts), limit),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def mark_announce_sent(self, item_id: int):
+        with self._lock, self._conn:
+            self._conn.execute("DELETE FROM announce_queue WHERE id=?", (item_id,))
+
+    def bump_announce_attempt(self, item_id: int):
+        with self._lock, self._conn:
+            self._conn.execute(
+                "UPDATE announce_queue SET attempts=attempts+1 WHERE id=?", (item_id,)
+            )
+
+    def queue_size(self) -> int:
+        return self._conn.execute("SELECT COUNT(*) FROM announce_queue").fetchone()[0]
 
     # ---------- 统计 ----------
 

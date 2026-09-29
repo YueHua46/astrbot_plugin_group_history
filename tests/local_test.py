@@ -87,7 +87,7 @@ assert h.exists() and h.stat().st_size > 3000 and p is None
 print("exporter OK,", h.name, h.stat().st_size, "bytes")
 
 from group_history.fetcher import (parse_chain_content, chunk_lines, subsample_lines,
-                                   is_group_umo, parse_umo)
+                                   is_group_umo, parse_umo, next_announce_due_ts)
 assert parse_chain_content('{"type":"user","message":[{"type":"plain","text":"哈喽"},'
                            '{"type":"at","qq":"123","name":"凯子"},{"type":"image","url":"x"}]}') \
        == "哈喽 @凯子 [图]"
@@ -98,5 +98,17 @@ chunks = chunk_lines(big, 2000)
 assert sum(len(c) for c in chunks) == len(big)
 sub, sampled = subsample_lines(big, 1000)
 assert sampled and len(sub) < len(big)
+# 官宣时刻计算
+from datetime import datetime as _dt
+import calendar
+base = _dt(2026, 9, 29, 10, 0).timestamp()
+due = _dt.fromtimestamp(next_announce_due_ts(int(base), 12))
+assert (due.hour, due.minute) == (12, 0) and due.day == 29  # 上午10点 → 当天12点
+base2 = _dt(2026, 9, 29, 13, 30).timestamp()
+due2 = _dt.fromtimestamp(next_announce_due_ts(int(base2), 12))
+assert due2.day == 30 and due2.hour == 12  # 13:30 → 次日12点
+base3 = _dt(2026, 9, 29, 12, 0, 5).timestamp()
+due3 = _dt.fromtimestamp(next_announce_due_ts(int(base3), 12))
+assert due3.day == 30  # 恰好过点 → 次日
 print("fetcher OK")
 print("ALL_LOCAL_TESTS_PASSED")

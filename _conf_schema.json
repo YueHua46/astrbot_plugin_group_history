@@ -29,6 +29,12 @@
     "type": "int",
     "default": 1
   },
+  "announce_hour": {
+    "description": "官宣时刻（几点，-1 = 编完立即发）",
+    "hint": "编纂在 run_hour 静默完成，官宣推迟到本时刻的下一个整点发出。默认 12 点中午发报，避免深夜打扰群友。",
+    "type": "int",
+    "default": 12
+  },
   "max_announces_per_day": {
     "description": "每次编纂的官宣条数上限",
     "hint": "词条照常全部入库，但群里每次最多官宣这么多条（按史评等级从高到低）。0 = 只入库、完全不在群里播报。",
