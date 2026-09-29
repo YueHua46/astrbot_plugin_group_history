@@ -59,6 +59,8 @@ AstrBot 插件：一个常驻群里的「编纂委员会」。它每晚通读前
 |---|---|---|
 | `provider_id` | gemini-3.8-flash-high | 执笔模型，下拉选择；留空用默认模型 |
 | `run_hour` | 2 | 每日编纂时刻 |
+| `run_interval_days` | 1 | 编纂周期：每 N 天跑一次，调大降低刷屏 |
+| `max_announces_per_day` | 2 | 每次编纂的官宣条数上限，0 = 只入库不播报 |
 | `max_entries_per_day` | 2 | 每日入史上限（防通货膨胀） |
 | `significance_threshold` | 6 | 入史门槛（1-10），调高只记大事 |
 | `backfill_days` | 14 | 首次启动静默回溯天数 |
